@@ -84,7 +84,7 @@ with dataset:
     'rate': value_[start_index : end_index]
     })
     
-    st.write(exchange_rate)
+    # st.write(exchange_rate)
 
 
     st.bar_chart(exchange_rate, x = 'date', y = 'rate')
