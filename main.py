@@ -4,11 +4,10 @@ import requests
 from datetime import datetime
 
 header = st.container()
-dataset = st.container()
+dataset_ = st.container()
 settings = st.sidebar.container()
-model_training = st.container()
 
-def get_data(api):
+def dataset(api) -> list:
     '''
     Получает данные по api
     '''
@@ -18,25 +17,17 @@ def get_data(api):
 
 
 
-def get_asset(dictionary_):
+def get_asset(dictionary) -> dict:
     '''
     Формирует словарь с доступными списками валют и их id
     '''
-    dict2 = {}
-    for item in dictionary_:
-        dict2[item['symbol']] = 'https://api.coincap.io/v2/assets/'+ item['id'] + '/history?interval=d1' 
-    return dict2
+    symbol_api = {}
+    for item in dictionary:
+        symbol_api[item['symbol']] = 'https://api.coincap.io/v2/assets/'+ item['id'] + '/history?interval=d1' 
+    return symbol_api
 
-def get_asset_list(dictionary_):
-    '''
-    Формирует список с доступными списками валют и их id
-    '''
-    list_assets = []
-    for item in dictionary_:
-        list_assets.append(item['symbol'])
-    return list_assets
 
-def date (history):
+def get_date (history) -> list:
     '''
     Формирует список дат 
     '''    
@@ -48,7 +39,7 @@ def date (history):
         data_list.append(date2)
     return data_list
 
-def value (history):
+def get_value (history) -> list:
     '''
     Формирует список цены 
     '''
@@ -57,34 +48,36 @@ def value (history):
         data_list.append(float(item['priceUsd']))
     return data_list
    
-    
-with settings:
-    sel_col, disp_col = st.columns(2)
-    dict_ = get_data('https://api.coincap.io/v2/assets')
-    asset_list = get_asset_list(dict_)
-    asset = sel_col.selectbox('Select an asset', options=asset_list)
-    api = get_asset(dict_)
-    history = get_data(api[asset])
-    date_ = date(history)
-    value_ = value(history)
-    date_from = st.date_input('Date from', value = min(date_), min_value = min(date_), max_value = max(date_))
-    date_to = st.date_input('Date to', value = max(date_), min_value = min(date_), max_value = max(date_))
+def app():    
+    with settings:       
+        data = dataset('https://api.coincap.io/v2/assets')
+        symbol_list = [item['symbol'] for item in data] 
+        
+        symbol = st.selectbox('Select an asset', options=symbol_list)
+        
+        symbol_api = get_asset(data)
+        history = dataset(symbol_api[symbol])
+        date = get_date(history)
+        rate = get_value(history)
+       
+        date_from = st.date_input('Date from', value = min(date), min_value = min(date), max_value = max(date))
+        date_to = st.date_input('Date to', value = max(date), min_value = min(date), max_value = max(date))
+        
+        start_index = date.index(date_from)
+        end_index = date.index(date_to)
 
-    
-
-with header:
-    st.title('Exchange rate')
-
-with dataset:
-    start_index = date_.index(date_from)
-    end_index = date_.index(date_to)
-   
-    exchange_rate = pd.DataFrame({
-    'date': date_[start_index : end_index],
-    'rate': value_[start_index : end_index]
-    })
-    
-    # st.write(exchange_rate)
+        
+    with header:
+        st.title('Exchange rate')
 
 
-    st.bar_chart(exchange_rate, x = 'date', y = 'rate')
+    with dataset_:   
+        exchange_rate = pd.DataFrame({
+        'date': date [start_index : end_index],
+        'rate': rate [start_index : end_index]
+        })
+        
+        st.bar_chart(exchange_rate, x = 'date', y = 'rate')
+
+if __name__ == '__main__':
+    app()
